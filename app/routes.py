@@ -1,7 +1,9 @@
 from app import app, db
 from app.models import User, Post
 from flask import jsonify, request
-import requests
+from google import genai
+from pydantic import BaseModel
+import json
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
@@ -74,6 +76,9 @@ def list_books(user_id):
         'user_id': book.user_id
     } for book in books])
 
+class Book(BaseModel):
+    title: str
+    explanation: str
 
 @app.route('/api/books/recommendations/<int:user_id>', methods=['GET'])
 def get_recommendations(user_id):
@@ -84,31 +89,18 @@ def get_recommendations(user_id):
         return jsonify({'error': 'Not enough books to provide recommendations'}), 400
     book_titles = [book.body for book in books]
     
-    headers = {
-        'Content-Type': 'application/json',
-    }
-
-    params = {
-        'key': 'AIzaSyDDgXc2YV3g5MGH72V_zgNRFNJHqZ-jK00',
-    }
-
-    json_data = {
-        'contents': [
-            {
-                'parts': [
-                    {
-                        'text': 'Recommend books based on the following titles, the answer must be in a python dict form: ' + ', '.join(book_titles),
-                    },
-                ],
-            },
-        ],
-    }
-    response = requests.post(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-        params=params,
-        headers=headers,
-        json=json_data,
+    client = genai.Client(api_key='AIzaSyDDgXc2YV3g5MGH72V_zgNRFNJHqZ-jK00')
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents="Generate a list of book recommendations based on the following titles: " + ", ".join(book_titles),
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": list[Book],
+        },
     )
 
+    _response_json = json.loads(response.text)
 
-    return jsonify(response.json()), 200
+
+
+    return jsonify(_response_json), 200
