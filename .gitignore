@@ -83,3 +83,5 @@ serverapp/dev_settings.py
 
 # local test
 my_test.py
+
+.flaskenv
