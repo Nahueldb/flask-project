@@ -5,7 +5,8 @@ from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
 from app.books.services import BookService
 from app.users.services import UserService
 import json
-
+import os
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 book_bp = Blueprint('books', __name__)
 
 @book_bp.route('/', methods=['POST'])
@@ -47,8 +48,8 @@ def get_recommendations(user_id):
     if len(books) < 2:
         return jsonify({'error': 'Not enough books to provide recommendations'}), 400
     book_titles = [book.title for book in books]
-    
-    client = genai.Client(api_key='AIzaSyDDgXc2YV3g5MGH72V_zgNRFNJHqZ-jK00')
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents="Generate a list of book recommendations based on the following titles (the explanation must be in spanish): " + ", ".join(book_titles),
