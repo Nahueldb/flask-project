@@ -1,10 +1,9 @@
-from app.books.models import Book
-from app.users.models import User
-from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
 from flask import jsonify, request, Blueprint
 from google import genai
 from pydantic import ValidationError
-from app.core.db import db
+from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
+from app.books.services import BookService
+from app.users.services import UserService
 import json
 
 book_bp = Blueprint('books', __name__)
@@ -16,14 +15,14 @@ def add_book():
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
 
-    user_exists = User.query.filter_by(id=data.user_id).first()
+    user_exists = UserService.get_user_by_id(data.user_id)
     if not user_exists:
         return jsonify({'error': 'User does not exist'}), 404
 
-    book = Book(title=data.title, user_id=data.user_id)
-
-    db.session.add(book)
-    db.session.commit()
+    book = BookService.add_book(
+        title=data.title,
+        user_id=data.user_id
+    )
 
     return jsonify({
         'status': 'book added successfully',
@@ -33,7 +32,7 @@ def add_book():
 
 @book_bp.route('/<int:user_id>', methods=['GET'])
 def list_books(user_id):
-    books = Book.query.filter_by(user_id=user_id).all()
+    books = BookService.get_books_by_user_id(user_id)
     return jsonify([
         BookSchema.model_validate(book).model_dump()
         for book in books
@@ -42,7 +41,7 @@ def list_books(user_id):
 
 @book_bp.route('/recommendations/<int:user_id>', methods=['GET'])
 def get_recommendations(user_id):
-    books = Book.query.filter_by(user_id=user_id).all()
+    books = BookService.get_books_by_user_id(user_id)
     if not books:
         return jsonify({'error': 'No books found for this user'}), 404
     if len(books) < 2:

@@ -1,7 +1,7 @@
-from app.users.models import User
 from flask import jsonify, request, Blueprint
 from app.core.db import db
 from app.users.schemas import UserSchema, UserCreateSchema, UserUpdateSchema
+from app.users.services import UserService
 from pydantic import ValidationError
 
 user_bp = Blueprint('users', __name__)
@@ -9,7 +9,9 @@ user_bp = Blueprint('users', __name__)
 
 @user_bp.route('/', methods=['GET'])
 def get_users():
-    users = User.query.all()
+    users = UserService.get_users()
+    if not users:
+        return jsonify({'error': 'No users found'}), 404
     return jsonify([UserSchema.model_validate(user).model_dump() for user in users])
 
 
@@ -20,13 +22,12 @@ def create_user():
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
 
-    user_exists = User.query.filter_by(username=data.username).first()
+    user_exists = UserService.get_user_by_username(data.username)
     if user_exists:
         return jsonify({'error': 'User already exists'}), 400
-    user = User(username=data.username, email=data.email)
 
-    db.session.add(user)
-    db.session.commit()
+    user = UserService.create_user(data.username, data.email)
+
     return jsonify({
         'status': 'user created successfully',
         'user': UserSchema.model_validate(user).model_dump()
@@ -35,16 +36,20 @@ def create_user():
 
 @user_bp.route('/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = UserService.get_user_by_id(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
 
     try:
         data = UserUpdateSchema(**request.get_json())
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
 
-    user.username = data.username if data.username is not None else user.username
-    user.email = data.email if data.email is not None else user.email
-    db.session.commit()
+    user = UserService.update_user(
+        user,
+        username=data.username if data.username is not None else user.username,
+        email=data.email if data.email is not None else user.email
+    )
     return jsonify({
         'status': 'updated successfully',
         'user': UserSchema.model_validate(user).model_dump()
