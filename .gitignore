@@ -79,7 +79,7 @@ venv/
 serverapp/dev_settings.py
 
 # local databases
-*.db
+# *.db
 
 # local test
 my_test.py
