@@ -1,7 +1,9 @@
 from app.books.models import Book
+from app.users.models import User
+from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
 from flask import jsonify, request, Blueprint
 from google import genai
-from pydantic import BaseModel
+from pydantic import ValidationError
 from app.core.db import db
 import json
 
@@ -9,38 +11,34 @@ book_bp = Blueprint('books', __name__)
 
 @book_bp.route('/', methods=['POST'])
 def add_book():
-    data = request.get_json()
+    try:
+        data = BookCreateSchema(**request.get_json())
+    except ValidationError as e:
+        return jsonify({'error': str(e)}), 400
 
-    if not data or not 'title' in data or not 'user_id' in data:
-        return jsonify({'error': 'Bad Request'}), 400
-    
-    book = Book(title=data['title'], user_id=data['user_id'])
+    user_exists = User.query.filter_by(id=data.user_id).first()
+    if not user_exists:
+        return jsonify({'error': 'User does not exist'}), 404
+
+    book = Book(title=data.title, user_id=data.user_id)
 
     db.session.add(book)
     db.session.commit()
 
     return jsonify({
         'status': 'book added successfully',
-        'book': {
-            'id': book.id,
-            'title': book.title,
-            'user_id': book.user_id
-        }
+        'book': BookSchema.model_validate(book).model_dump()
     }), 201
 
 
 @book_bp.route('/<int:user_id>', methods=['GET'])
 def list_books(user_id):
     books = Book.query.filter_by(user_id=user_id).all()
-    return jsonify([{
-        'id': book.id,
-        'title': book.title,
-        'user_id': book.user_id
-    } for book in books])
+    return jsonify([
+        BookSchema.model_validate(book).model_dump()
+        for book in books
+    ]), 200
 
-class Recommendation(BaseModel):
-    title: str
-    explanation: str
 
 @book_bp.route('/recommendations/<int:user_id>', methods=['GET'])
 def get_recommendations(user_id):
@@ -62,7 +60,5 @@ def get_recommendations(user_id):
     )
 
     _response_json = json.loads(response.text)
-
-
 
     return jsonify(_response_json), 200
