@@ -6,10 +6,10 @@ from app.core.db import db, migrate
 from app.core.error_handlers import register_error_handlers
 
 
-def create_app():
+def create_app(config_class=Config):
     """Create and configure the Flask application."""
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(config_class)
 
     db.init_app(app)
     migrate.init_app(app, db)
