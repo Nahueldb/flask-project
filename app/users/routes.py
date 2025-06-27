@@ -2,7 +2,7 @@ from flask import jsonify, request, Blueprint
 from app.core.db import db
 from app.users.schemas import UserSchema, UserCreateSchema, UserUpdateSchema
 from app.users.services import UserService
-from pydantic import ValidationError
+from app.core.error_handlers import UserNotFoundError, UserAlreadyExistsError
 
 user_bp = Blueprint('users', __name__)
 
@@ -11,20 +11,17 @@ user_bp = Blueprint('users', __name__)
 def get_users():
     users = UserService.get_users()
     if not users:
-        return jsonify({'error': 'No users found'}), 404
+        raise UserNotFoundError()
     return jsonify([UserSchema.model_validate(user).model_dump() for user in users])
 
 
 @user_bp.route('/', methods=['POST'])
 def create_user():
-    try:
-        data = UserCreateSchema(**request.get_json())
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+    data = UserCreateSchema(**request.get_json())
 
     user_exists = UserService.get_user_by_username(data.username)
     if user_exists:
-        return jsonify({'error': 'User already exists'}), 400
+        raise UserAlreadyExistsError(data.username)
 
     user = UserService.create_user(data.username, data.email)
 
@@ -38,12 +35,9 @@ def create_user():
 def update_user(user_id):
     user = UserService.get_user_by_id(user_id)
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        raise UserNotFoundError()
 
-    try:
-        data = UserUpdateSchema(**request.get_json())
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+    data = UserUpdateSchema(**request.get_json())
 
     user = UserService.update_user(
         user,
