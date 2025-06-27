@@ -10,8 +10,8 @@ user_bp = Blueprint('users', __name__)
 @user_bp.route('/', methods=['GET'])
 def get_users():
     users = UserService.get_users()
-    if not users:
-        raise UserNotFoundError()
+    # if not users:
+    #     raise UserNotFoundError()
     return jsonify([UserSchema.model_validate(user).model_dump() for user in users])
 
 
