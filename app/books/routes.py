@@ -1,9 +1,9 @@
 from flask import jsonify, request, Blueprint
 from google import genai
-from pydantic import ValidationError
 from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
 from app.books.services import BookService
 from app.users.services import UserService
+from app.core.error_handlers import UserNotFoundError, BookNotFoundError
 import json
 import os
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -11,14 +11,11 @@ book_bp = Blueprint('books', __name__)
 
 @book_bp.route('/', methods=['POST'])
 def add_book():
-    try:
-        data = BookCreateSchema(**request.get_json())
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+    data = BookCreateSchema(**request.get_json())
 
     user_exists = UserService.get_user_by_id(data.user_id)
     if not user_exists:
-        return jsonify({'error': 'User does not exist'}), 404
+        raise UserNotFoundError()
 
     book = BookService.add_book(
         title=data.title,
@@ -34,6 +31,11 @@ def add_book():
 @book_bp.route('/<int:user_id>', methods=['GET'])
 def list_books(user_id):
     books = BookService.get_books_by_user_id(user_id)
+    user_exists = UserService.get_user_by_id(user_id)
+    if not user_exists:
+        raise UserNotFoundError()
+    if not books:
+        raise BookNotFoundError()
     return jsonify([
         BookSchema.model_validate(book).model_dump()
         for book in books
