@@ -1,8 +1,4 @@
-from tests.conftest import app, client
-from app.users.models import User
 from app.users.schemas import UserCreateSchema, UserUpdateSchema
-from app.core.error_handlers import UserNotFoundError, UserAlreadyExistsError
-import pytest
 
 
 def test_create_user(client):

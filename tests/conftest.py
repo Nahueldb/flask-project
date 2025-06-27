@@ -2,6 +2,7 @@ import pytest
 from app import create_app, db
 from config import TestConfig
 
+
 @pytest.fixture
 def app():
     app = create_app(TestConfig)
