@@ -14,6 +14,8 @@ services:
       - ./:/app
     ports:
       - 5000:5000
+    env_file:
+      - .flaskenv
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
     depends_on:
