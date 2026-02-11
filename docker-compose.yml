@@ -9,7 +9,7 @@ services:
       options:
         max-size: "500m"
         max-file: "2"
-    command: flask run --host=0.0.0.0
+    command: gunicorn --bind 0.0.0.0:5000 run:app
     volumes:
       - ./:/app
     ports:
