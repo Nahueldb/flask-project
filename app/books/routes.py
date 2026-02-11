@@ -53,7 +53,7 @@ def get_recommendations(user_id):
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash-lite",
         contents="Generate a list of book recommendations based on the following titles (the explanation must be in spanish): " + ", ".join(book_titles),
         config={
             "response_mime_type": "application/json",
