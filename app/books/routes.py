@@ -1,7 +1,6 @@
 from flask import jsonify, request, Blueprint
-from google import genai
-from app.books.schemas import Recommendation, BookCreateSchema, BookSchema
-from app.books.services import BookService
+from app.books.schemas import BookCreateSchema, BookSchema
+from app.books.services import BookService, RecommendationService
 from app.users.services import UserService
 from app.core.error_handlers import UserNotFoundError, BookNotFoundError
 import json
@@ -51,15 +50,7 @@ def get_recommendations(user_id):
         return jsonify({'error': 'Not enough books to provide recommendations'}), 400
     book_titles = [book.title for book in books]
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents="Generate a list of book recommendations based on the following titles (the explanation must be in spanish): " + ", ".join(book_titles),
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": list[Recommendation],
-        },
-    )
+    response = RecommendationService.get_recommendations(user_id, book_titles)
 
     _response_json = json.loads(response.text)
 
