@@ -59,6 +59,13 @@ def test_get_recommendations(client, mocker):
         Book(id=1, title='Test Book 1', timestamp=datetime(2023, 10, 1), user_id=1),
         Book(id=2, title='Test Book 2', timestamp=datetime(2023, 10, 2), user_id=1)
     ])
+
+    fake_gemini_response = mocker.Mock()
+    fake_gemini_response.text = '[{"title":"Book A","author":"Author A","explanation":"Porque te gustará"}]'
+    fake_genai_client = mocker.Mock()
+    fake_genai_client.models.generate_content.return_value = fake_gemini_response
+    mocker.patch('app.books.routes.genai.Client', return_value=fake_genai_client)
+
     # Send a GET request to get recommendations for user with ID 1
     response = client.get('api/books/recommendations/1')
 
@@ -67,3 +74,4 @@ def test_get_recommendations(client, mocker):
     assert isinstance(response.json, list)
     assert len(response.json) > 0
     assert 'explanation' in response.json[0]
+    fake_genai_client.models.generate_content.assert_called_once()
