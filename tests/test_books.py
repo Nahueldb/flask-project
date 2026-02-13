@@ -64,7 +64,7 @@ def test_get_recommendations(client, mocker):
     fake_gemini_response.text = '[{"title":"Book A","author":"Author A","explanation":"Porque te gustará"}]'
     fake_genai_client = mocker.Mock()
     fake_genai_client.models.generate_content.return_value = fake_gemini_response
-    mocker.patch('app.books.routes.genai.Client', return_value=fake_genai_client)
+    mocker.patch('app.books.services.get_gemini_client', return_value=fake_genai_client)
 
     # Send a GET request to get recommendations for user with ID 1
     response = client.get('api/books/recommendations/1')
